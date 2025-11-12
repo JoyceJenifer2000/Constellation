@@ -200,87 +200,81 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-<!-- Quick visibility fix for Pega widget: paste after the widget <script> and before </body> -->
-<style>
-  /* minimal fallback in case JS runs late */
-  iframe[src*="pega.digital"], .pega-wm, .pega-widget {
-    position: fixed !important;
-    right: 20px !important;
-    bottom: 90px !important;
-    width: 360px !important;
-    height: 500px !important;
-    z-index: 999999999999999 !important;
-    display: block !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    transform: none !important;
-  }
-</style>
-
+<!-- Auto-lift Pega widget above the footer (paste after widget script, before </body>) -->
 <script>
-(function () {
-  function fixWidget() {
-    try {
-      // remove duplicate iframes but keep last one
-      const frames = Array.from(document.querySelectorAll('iframe[src*="pega.digital"]'));
-      if (frames.length > 1) frames.slice(0, -1).forEach(f => f.remove());
-      const f = document.querySelector('iframe[src*="pega.digital"]');
-      if (!f) return;
+(function(){
+  const footerCandidates = ['footer', '.site-footer', '#footer', '.footer', '[role="contentinfo"]'];
 
-      // If iframe is inside a wrapper, move it to body to escape stacking contexts
-      if (f.parentElement !== document.body) {
-        document.body.appendChild(f);
-      }
+  function findFooter() {
+    for (const s of footerCandidates) {
+      const el = document.querySelector(s);
+      if (el) return el;
+    }
+    return null;
+  }
 
-      // Apply strong inline styles so nothing in the page can hide it
-      Object.assign(f.style, {
+  function getWidgetFrame() {
+    return document.querySelector('iframe[src*="pega.digital"]');
+  }
+
+  function adjustWidget() {
+    const f = getWidgetFrame();
+    if (!f) return;
+    const footer = findFooter();
+    // default gap when footer not found
+    let gap = 90;
+    if (footer) {
+      const rect = footer.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      // overlap = how many px of footer are visible inside viewport
+      const overlap = Math.max(0, vh - rect.top);
+      // bottom should be overlap + small gap (16px) so widget sits above footer
+      gap = Math.max(16, overlap + 16);
+    }
+    // ensure strong inline style so page CSS doesn't override
+    Object.assign(f.style, {
+      position: 'fixed',
+      right: '20px',
+      bottom: gap + 'px',
+      zIndex: '2147483647',
+      width: f.style.width || '360px',
+      height: f.style.height || '500px',
+      display: 'block',
+      visibility: 'visible'
+    });
+
+    // also fix common wrapper if present
+    const wrapper = document.querySelector('.pega-wm, .pega-widget');
+    if (wrapper) {
+      Object.assign(wrapper.style, {
         position: 'fixed',
         right: '20px',
-        bottom: '90px',
-        width: '360px',
-        height: '500px',
-        maxHeight: 'calc(100vh - 120px)',
-        zIndex: '2147483647000', // extremely large
-        display: 'block',
-        visibility: 'visible',
-        pointerEvents: 'auto',
-        transform: 'none'
-      });
-
-      // Also style common wrapper classes if present
-      const wrapper = document.querySelector('.pega-wm, .pega-widget');
-      if (wrapper && wrapper.parentElement !== document.body) {
-        try { document.body.appendChild(wrapper); } catch(e) {}
-      }
-      if (wrapper) Object.assign(wrapper.style, {
-        position: 'fixed',
-        right: '20px',
-        bottom: '90px',
-        width: '360px',
-        height: '500px',
-        zIndex: '2147483647000',
+        bottom: gap + 'px',
+        zIndex: '2147483647',
         display: 'block',
         visibility: 'visible'
       });
-
-    } catch (e) { /* ignore */ }
+      // if wrapper is not direct child of body move it to body to avoid stacking contexts
+      if (wrapper.parentElement !== document.body) try { document.body.appendChild(wrapper); } catch(e){}
+    }
   }
 
-  // Keep trying until widget appears (it loads async)
+  // keep trying until the iframe appears, then watch for changes
   let tries = 0;
-  const id = setInterval(function() {
-    fixWidget();
+  const id = setInterval(() => {
+    adjustWidget();
     tries++;
-    if (document.querySelector('iframe[src*="pega.digital"]') || tries > 40) {
+    if (getWidgetFrame() || tries > 60) {
       clearInterval(id);
-      // keep it enforced on resize/scroll or DOM rebuilds
-      window.addEventListener('resize', fixWidget, {passive:true});
-      window.addEventListener('scroll', fixWidget, {passive:true});
-      new MutationObserver(fixWidget).observe(document.documentElement, {childList:true, subtree:true});
+      window.addEventListener('resize', adjustWidget, {passive:true});
+      window.addEventListener('scroll', adjustWidget, {passive:true});
+      // watch DOM for footer or iframe changes
+      new MutationObserver(adjustWidget).observe(document.documentElement, {childList:true, subtree:true, attributes:true});
     }
   }, 300);
 })();
 </script>
+
 
 
 
