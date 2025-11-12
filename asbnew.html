@@ -200,84 +200,84 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-<!-- Paste this once after the widget <script> and before </body> -->
-<style>
-  /* fallback if JS runs late: ensure widget doesn't hide content permanently */
-  body { transition: padding-bottom .2s ease; }
-  iframe[src*="pega.digital"], .pega-wm, .pega-widget {
-    position: fixed !important;
-    right: 20px !important;
-    bottom: 16px !important;     /* this will be adjusted by JS if footer exists */
-    width: 360px !important;
-    height: 500px !important;
-    z-index: 2147483647 !important;
-    display: block !important;
-    visibility: visible !important;
-  }
-  @media (max-width:600px){
-    iframe[src*="pega.digital"], .pega-wm, .pega-widget {
-      width: 300px !important;
-      height: 420px !important;
-      right: 12px !important;
-    }
-  }
-</style>
-
+<!-- Fix widget overlap with footer -->
 <script>
 (function(){
-  const widgetHeightDesktop = 500; // matches CSS height above
+  const widgetHeightDesktop = 500; // must match your CSS width/height
   const widgetHeightMobile  = 420;
-  const extraGap = 16; // gap between widget and footer
+  const extraGap = 16; // px between widget bottom and footer
 
-  function getFooterEl() {
+  function getFooter() {
     return document.querySelector('footer, .site-footer, #footer, .footer, [role="contentinfo"]');
   }
 
-  function updatePadding() {
-    const footer = getFooterEl();
-    const isMobile = window.innerWidth <= 600;
-    const widgetH = isMobile ? widgetHeightMobile : widgetHeightDesktop;
-    let pad = widgetH + extraGap; // default padding if no footer found
-
-    if (footer) {
-      try {
-        const rect = footer.getBoundingClientRect();
-        // if footer is tall/visible, ensure widget sits above it
-        const vh = window.innerHeight || document.documentElement.clientHeight;
-        const visibleFooterHeight = Math.max(0, vh - rect.top);
-        // final padding = widget height + visible footer height + small gap
-        pad = widgetH + visibleFooterHeight + extraGap;
-      } catch(e) { /* ignore and use default pad */ }
-    }
-
-    // apply padding to body (creates the safe space)
-    document.documentElement.style.paddingBottom = pad + 'px';
-    document.body.style.paddingBottom = pad + 'px';
-    // also set widget bottom to safe gap above footer (so it floats slightly above)
-    const f = document.querySelector('iframe[src*="pega.digital"], .pega-wm, .pega-widget');
-    if (f) f.style.bottom = (visibleFooterHeight ? (visibleFooterHeight + extraGap) + 'px' : (extraGap + 'px'));
+  function getWidget() {
+    return document.querySelector('iframe[src*="pega.digital"], .pega-wm, .pega-widget');
   }
 
-  // run on load and keep updated on resize/scroll/DOM changes
-  const init = () => {
-    updatePadding();
-    window.addEventListener('resize', updatePadding, {passive:true});
-    window.addEventListener('scroll', updatePadding, {passive:true});
-    new MutationObserver(updatePadding).observe(document.documentElement, {childList:true, subtree:true, attributes:true});
-  };
+  function computePadding() {
+    const isMobile = window.innerWidth <= 600;
+    const widgetH = isMobile ? widgetHeightMobile : widgetHeightDesktop;
+    const footer = getFooter();
 
-  // Wait for DOM ready and for widget to be injected
+    let footerH = 0;
+    if (footer) {
+      footerH = footer.offsetHeight || footer.getBoundingClientRect().height || 0;
+      footerH = Math.min(footerH, Math.max(200, footerH)); // safety cap
+    }
+
+    const pad = widgetH + footerH + extraGap;
+    return { pad, footerH, widgetH };
+  }
+
+  function applyLayout() {
+    const w = getWidget();
+    const { pad, footerH, widgetH } = computePadding();
+
+    const currentPad = parseInt(getComputedStyle(document.documentElement).paddingBottom || 0, 10) || 0;
+    if (currentPad !== pad) {
+      document.documentElement.style.paddingBottom = pad + 'px';
+      document.body.style.paddingBottom = pad + 'px';
+    }
+
+    if (w) {
+      const bottomPx = (footerH ? (footerH + extraGap) : extraGap) + 'px';
+      Object.assign(w.style, {
+        position: 'fixed',
+        right: window.innerWidth <= 600 ? '12px' : '20px',
+        bottom:  bottomPx,
+        width: window.innerWidth <= 600 ? '300px' : '360px',
+        height: window.innerWidth <= 600 ? widgetHeightMobile + 'px' : widgetHeightDesktop + 'px',
+        zIndex: '2147483647',
+        display: 'block',
+        visibility: 'visible',
+      });
+
+      const wrapper = document.querySelector('.pega-wm, .pega-widget');
+      if (wrapper && wrapper.parentElement !== document.body) {
+        try { document.body.appendChild(wrapper); } catch(e) {}
+        Object.assign(wrapper.style, { position:'fixed', right: window.innerWidth <= 600 ? '12px' : '20px', bottom: bottomPx, zIndex:'2147483647' });
+      }
+    }
+  }
+
   let tries = 0;
   const id = setInterval(() => {
     tries++;
-    // run once widget or footer likely exists
-    if (document.readyState === 'complete' || document.querySelector('iframe[src*="pega.digital"]') || tries > 40) {
+    applyLayout();
+    if (getWidget() || tries > 60) {
       clearInterval(id);
-      init();
+      let scheduled = null;
+      const tick = () => { if (scheduled) return; scheduled = requestAnimationFrame(()=>{ scheduled = null; applyLayout(); }); };
+
+      window.addEventListener('resize', tick, {passive:true});
+      window.addEventListener('orientationchange', tick, {passive:true});
+      new MutationObserver(tick).observe(document.documentElement, {childList:true, subtree:true, attributes:true});
     }
-  }, 250);
+  }, 300);
 })();
 </script>
+
 
 
 
