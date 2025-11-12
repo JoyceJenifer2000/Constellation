@@ -196,5 +196,46 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
+
+<!-- Pega widget layout fix — paste this just before </body> -->
+<style id="pega-widget-adjust">
+  /* Conservative, targeted sizing and placement for the Pega widget iframe/container */
+  iframe[src*="pega.digital"], .pega-wm, .pega-widget {
+    position: fixed !important;
+    right: 18px !important;           /* distance from right edge */
+    bottom: 90px !important;          /* lift above footer / fixed page elements */
+    width: 320px !important;          /* narrower widget */
+    height: 440px !important;         /* reasonable visible height */
+    max-height: calc(100vh - 120px) !important; /* never overflow viewport */
+    max-width: calc(100% - 36px) !important;
+    z-index: 2147483647 !important;   /* sit on top of other page elements */
+    border-radius: 8px !important;
+    box-shadow: 0 8px 26px rgba(0,0,0,0.25) !important;
+    overflow: hidden !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Slightly larger on very wide screens */
+  @media (min-width:1200px){
+    iframe[src*="pega.digital"], .pega-wm, .pega-widget {
+      width: 360px !important;
+      height: 500px !important;
+      bottom: 90px !important;
+    }
+  }
+
+  /* Mobile-friendly */
+  @media (max-width:420px){
+    iframe[src*="pega.digital"], .pega-wm, .pega-widget {
+      right: 12px !important;
+      bottom: 12px !important;
+      width: 300px !important;
+      height: 420px !important;
+    }
+  }
+</style>
+
+
 </body>
 </html>
