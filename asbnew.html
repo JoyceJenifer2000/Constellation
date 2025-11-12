@@ -200,106 +200,39 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-<!-- Final Pega widget fix: CSS + small JS (paste right after your widget <script> and before </body>) -->
-<style id="pega-widget-final-fix">
-  /* visual fallback if JS not yet run */
-  iframe[src*="pega.digital"], .pega-wm, .pega-widget {
+<!-- Minimal — paste just before </body> -->
+<style>
+  /* target iframe and common wrapper classes */
+  iframe[src*="pega.digital"],
+  .pega-wm,
+  .pega-widget,
+  .pega-wm * {
     position: fixed !important;
     right: 20px !important;
-    bottom: 100px !important;
-    width: 340px !important;
-    height: 480px !important;
-    max-height: calc(100vh - 120px) !important;
-    z-index: 21474836470 !important; /* extra-large so it appears above most things */
-    border-radius: 8px !important;
+    bottom: 90px !important;               /* lift above footer */
+    width: 360px !important;
+    height: 500px !important;
+    max-height: calc(100vh - 100px) !important;
+    z-index: 999999999999 !important;       /* extremely large */
+    pointer-events: auto !important;
+    transform: translateZ(0) !important;   /* promote to its own layer */
+    will-change: transform, bottom !important;
+    visibility: visible !important;
     display: block !important;
-    overflow: hidden !important;
-    transform: translateZ(0) !important; /* fight stacking context */
   }
+
+  /* slightly smaller for mobile */
   @media (max-width:600px){
-    iframe[src*="pega.digital"], .pega-wm, .pega-widget {
-      right: 12px !important; bottom: 70px !important; width: 300px !important; height: 420px !important;
+    iframe[src*="pega.digital"],
+    .pega-wm,
+    .pega-widget {
+      right: 12px !important;
+      bottom: 70px !important;
+      width: 300px !important;
+      height: 440px !important;
     }
   }
 </style>
-
-<script>
-(function () {
-  // tiny helper: move any Pega iframe into document.body and style it
-  function enforceWidget() {
-    try {
-      // remove duplicate iframe containers (keep last)
-      const allFrames = Array.from(document.querySelectorAll('iframe[src*="pega.digital"]'));
-      if (allFrames.length > 1) {
-        allFrames.slice(0, -1).forEach(f => f.remove());
-      }
-      const frame = document.querySelector('iframe[src*="pega.digital"]');
-      if (!frame) return;
-
-      // If iframe not direct child of body, move it there (prevents parent stacking contexts)
-      if (frame.parentElement !== document.body) {
-        document.body.appendChild(frame);
-      }
-
-      // also remove any duplicated wrapper containers (.pega-wm/.pega-widget) except the last
-      const wrappers = Array.from(document.querySelectorAll('.pega-wm, .pega-widget'));
-      if (wrappers.length > 1) {
-        wrappers.slice(0, -1).forEach(w => w.remove());
-      }
-
-      // enforce inline style (strongest)
-      Object.assign(frame.style, {
-        position: 'fixed',
-        right: '20px',
-        bottom: '100px',
-        width: '340px',
-        height: '480px',
-        maxHeight: 'calc(100vh - 120px)',
-        zIndex: '21474836470',
-        borderRadius: '8px',
-        display: 'block',
-        overflow: 'hidden',
-        transform: 'translateZ(0)',
-        visibility: 'visible'
-      });
-
-      // also ensure any wrapper is not blocking
-      const wrapper = document.querySelector('.pega-wm, .pega-widget');
-      if (wrapper) {
-        Object.assign(wrapper.style, {
-          position: 'fixed',
-          right: '20px',
-          bottom: '100px',
-          width: '340px',
-          height: '480px',
-          zIndex: '21474836470',
-          display: 'block',
-          overflow: 'hidden'
-        });
-      }
-    } catch (e) {
-      /* ignore errors silently */
-    }
-  }
-
-  // Keep trying until iframe appears (widget injects it asynchronously)
-  let tries = 0;
-  const maxTries = 40;
-  const id = setInterval(() => {
-    enforceWidget();
-    tries++;
-    if (document.querySelector('iframe[src*="pega.digital"]') || tries >= maxTries) {
-      clearInterval(id);
-      // also run on resize/scroll in case footer/viewport changes
-      window.addEventListener('resize', enforceWidget, {passive:true});
-      window.addEventListener('scroll', enforceWidget, {passive:true});
-      // MutationObserver to catch widget rebuilds
-      const mo = new MutationObserver(enforceWidget);
-      mo.observe(document.documentElement, {childList:true, subtree:true});
-    }
-  }, 400);
-})();
-</script>
 
 
 
