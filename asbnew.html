@@ -200,39 +200,88 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-<!-- Minimal — paste just before </body> -->
+<!-- Quick visibility fix for Pega widget: paste after the widget <script> and before </body> -->
 <style>
-  /* target iframe and common wrapper classes */
-  iframe[src*="pega.digital"],
-  .pega-wm,
-  .pega-widget,
-  .pega-wm * {
+  /* minimal fallback in case JS runs late */
+  iframe[src*="pega.digital"], .pega-wm, .pega-widget {
     position: fixed !important;
     right: 20px !important;
-    bottom: 90px !important;               /* lift above footer */
+    bottom: 90px !important;
     width: 360px !important;
     height: 500px !important;
-    max-height: calc(100vh - 100px) !important;
-    z-index: 999999999999 !important;       /* extremely large */
-    pointer-events: auto !important;
-    transform: translateZ(0) !important;   /* promote to its own layer */
-    will-change: transform, bottom !important;
-    visibility: visible !important;
+    z-index: 999999999999999 !important;
     display: block !important;
-  }
-
-  /* slightly smaller for mobile */
-  @media (max-width:600px){
-    iframe[src*="pega.digital"],
-    .pega-wm,
-    .pega-widget {
-      right: 12px !important;
-      bottom: 70px !important;
-      width: 300px !important;
-      height: 440px !important;
-    }
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
   }
 </style>
+
+<script>
+(function () {
+  function fixWidget() {
+    try {
+      // remove duplicate iframes but keep last one
+      const frames = Array.from(document.querySelectorAll('iframe[src*="pega.digital"]'));
+      if (frames.length > 1) frames.slice(0, -1).forEach(f => f.remove());
+      const f = document.querySelector('iframe[src*="pega.digital"]');
+      if (!f) return;
+
+      // If iframe is inside a wrapper, move it to body to escape stacking contexts
+      if (f.parentElement !== document.body) {
+        document.body.appendChild(f);
+      }
+
+      // Apply strong inline styles so nothing in the page can hide it
+      Object.assign(f.style, {
+        position: 'fixed',
+        right: '20px',
+        bottom: '90px',
+        width: '360px',
+        height: '500px',
+        maxHeight: 'calc(100vh - 120px)',
+        zIndex: '2147483647000', // extremely large
+        display: 'block',
+        visibility: 'visible',
+        pointerEvents: 'auto',
+        transform: 'none'
+      });
+
+      // Also style common wrapper classes if present
+      const wrapper = document.querySelector('.pega-wm, .pega-widget');
+      if (wrapper && wrapper.parentElement !== document.body) {
+        try { document.body.appendChild(wrapper); } catch(e) {}
+      }
+      if (wrapper) Object.assign(wrapper.style, {
+        position: 'fixed',
+        right: '20px',
+        bottom: '90px',
+        width: '360px',
+        height: '500px',
+        zIndex: '2147483647000',
+        display: 'block',
+        visibility: 'visible'
+      });
+
+    } catch (e) { /* ignore */ }
+  }
+
+  // Keep trying until widget appears (it loads async)
+  let tries = 0;
+  const id = setInterval(function() {
+    fixWidget();
+    tries++;
+    if (document.querySelector('iframe[src*="pega.digital"]') || tries > 40) {
+      clearInterval(id);
+      // keep it enforced on resize/scroll or DOM rebuilds
+      window.addEventListener('resize', fixWidget, {passive:true});
+      window.addEventListener('scroll', fixWidget, {passive:true});
+      new MutationObserver(fixWidget).observe(document.documentElement, {childList:true, subtree:true});
+    }
+  }, 300);
+})();
+</script>
+
 
 
 
