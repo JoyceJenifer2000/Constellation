@@ -200,83 +200,122 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-<!-- Fix widget overlap with footer -->
+<!-- Stronger fix: force widget wrapper + iframe into a fixed box above footer -->
 <script>
 (function(){
-  const widgetHeightDesktop = 500; // must match your CSS width/height
-  const widgetHeightMobile  = 420;
-  const extraGap = 16; // px between widget bottom and footer
+  const DESKTOP_WIDGET_H = 500;
+  const MOBILE_WIDGET_H = 420;
+  const EXTRA_GAP = 24; // gap between widget and footer, increase if overlap
 
-  function getFooter() {
-    return document.querySelector('footer, .site-footer, #footer, .footer, [role="contentinfo"]');
+  function q(sel){return document.querySelector(sel);}
+  function findFooter(){
+    return q('footer, .site-footer, #footer, .footer, [role="contentinfo"]');
+  }
+  function findWrapper(){
+    // widget wrapper class variants used earlier
+    return q('.pega-wm, .pega-widget') || q('[id^="pega-wm"]');
+  }
+  function findIframe(){
+    return q('iframe[src*="pega.digital"]') || (findWrapper() && findWrapper().querySelector('iframe'));
   }
 
-  function getWidget() {
-    return document.querySelector('iframe[src*="pega.digital"], .pega-wm, .pega-widget');
-  }
-
-  function computePadding() {
+  function computeValues(){
     const isMobile = window.innerWidth <= 600;
-    const widgetH = isMobile ? widgetHeightMobile : widgetHeightDesktop;
-    const footer = getFooter();
-
-    let footerH = 0;
-    if (footer) {
-      footerH = footer.offsetHeight || footer.getBoundingClientRect().height || 0;
-      footerH = Math.min(footerH, Math.max(200, footerH)); // safety cap
-    }
-
-    const pad = widgetH + footerH + extraGap;
-    return { pad, footerH, widgetH };
+    const widgetH = isMobile ? MOBILE_WIDGET_H : DESKTOP_WIDGET_H;
+    const footer = findFooter();
+    const footerH = footer ? (footer.offsetHeight || footer.getBoundingClientRect().height || 0) : 0;
+    const pad = widgetH + footerH + EXTRA_GAP;
+    return { isMobile, widgetH, footerH, pad };
   }
 
-  function applyLayout() {
-    const w = getWidget();
-    const { pad, footerH, widgetH } = computePadding();
+  function forceBox(el, bottomPx, widgetH, isMobile){
+    if(!el) return;
+    // clear problematic positioning and pin it
+    el.style.position = 'fixed';
+    el.style.right = isMobile ? '12px' : '20px';
+    el.style.left = 'auto';
+    el.style.bottom = bottomPx;
+    el.style.top = 'auto';
+    el.style.transform = 'none';
+    el.style.width = isMobile ? '300px' : '360px';
+    el.style.maxWidth = '90vw';
+    el.style.height = widgetH + 'px';
+    el.style.maxHeight = '70vh';
+    el.style.overflow = 'auto';
+    el.style.zIndex = '2147483647';
+    el.style.display = 'block';
+    el.style.visibility = 'visible';
+    el.style.boxSizing = 'border-box';
+    // remove pointer-events issues
+    el.style.pointerEvents = 'auto';
+  }
 
-    const currentPad = parseInt(getComputedStyle(document.documentElement).paddingBottom || 0, 10) || 0;
-    if (currentPad !== pad) {
+  function applyFix(){
+    const { isMobile, widgetH, footerH, pad } = computeValues();
+    // stable padding on the page so widget cannot hide content
+    const curPad = parseInt(getComputedStyle(document.documentElement).paddingBottom || 0, 10) || 0;
+    if(curPad !== pad){
       document.documentElement.style.paddingBottom = pad + 'px';
       document.body.style.paddingBottom = pad + 'px';
     }
 
-    if (w) {
-      const bottomPx = (footerH ? (footerH + extraGap) : extraGap) + 'px';
-      Object.assign(w.style, {
-        position: 'fixed',
-        right: window.innerWidth <= 600 ? '12px' : '20px',
-        bottom:  bottomPx,
-        width: window.innerWidth <= 600 ? '300px' : '360px',
-        height: window.innerWidth <= 600 ? widgetHeightMobile + 'px' : widgetHeightDesktop + 'px',
-        zIndex: '2147483647',
-        display: 'block',
-        visibility: 'visible',
-      });
+    const wrapper = findWrapper();
+    const iframe = findIframe();
+    const bottomPx = (footerH ? (footerH + EXTRA_GAP) : EXTRA_GAP) + 'px';
 
-      const wrapper = document.querySelector('.pega-wm, .pega-widget');
-      if (wrapper && wrapper.parentElement !== document.body) {
-        try { document.body.appendChild(wrapper); } catch(e) {}
-        Object.assign(wrapper.style, { position:'fixed', right: window.innerWidth <= 600 ? '12px' : '20px', bottom: bottomPx, zIndex:'2147483647' });
+    // Move wrapper and iframe to body to escape any stacking context
+    try{
+      if(wrapper && wrapper.parentElement !== document.body){
+        document.body.appendChild(wrapper);
+      }
+      if(iframe && iframe.parentElement !== document.body){
+        // if iframe is nested inside wrapper this will move it; that's OK
+        document.body.appendChild(iframe);
+      }
+    }catch(e){ /* ignore DOM move failures */ }
+
+    // Prefer to style wrapper (it should contain the visible chat chrome).
+    const box = wrapper || iframe;
+    if(box){
+      // clear inline attributes that can keep it pinned inside another layout
+      box.removeAttribute('data-top');
+      box.removeAttribute('data-left');
+      // force the box style
+      forceBox(box, bottomPx, widgetH, isMobile);
+
+      // Propagate sizing into nested iframe if present so content scrolls inside
+      const nestedIframe = box.tagName === 'IFRAME' ? box : box.querySelector('iframe');
+      if(nestedIframe){
+        try {
+          // style the iframe itself (if same-origin styling won't throw)
+          nestedIframe.style.position = 'relative';
+        } catch(e){}
+        nestedIframe.style.width = '100%';
+        nestedIframe.style.height = '100%';
+        nestedIframe.style.maxHeight = '70vh';
+        nestedIframe.style.boxSizing = 'border-box';
       }
     }
   }
 
-  let tries = 0;
-  const id = setInterval(() => {
-    tries++;
-    applyLayout();
-    if (getWidget() || tries > 60) {
-      clearInterval(id);
-      let scheduled = null;
-      const tick = () => { if (scheduled) return; scheduled = requestAnimationFrame(()=>{ scheduled = null; applyLayout(); }); };
-
-      window.addEventListener('resize', tick, {passive:true});
-      window.addEventListener('orientationchange', tick, {passive:true});
-      new MutationObserver(tick).observe(document.documentElement, {childList:true, subtree:true, attributes:true});
+  // Poll until widget appears then keep listeners for resize/mutations
+  let ticks = 0;
+  const poll = setInterval(()=>{
+    ticks++;
+    applyFix();
+    if((findWrapper() || findIframe()) || ticks > 80){
+      clearInterval(poll);
+      // debounce-like refresh on resize / mutations
+      let scheduled = false;
+      const schedule = ()=>{ if(scheduled) return; scheduled = true; requestAnimationFrame(()=>{ scheduled=false; applyFix(); }); };
+      window.addEventListener('resize', schedule, {passive:true});
+      window.addEventListener('orientationchange', schedule, {passive:true});
+      new MutationObserver(schedule).observe(document.documentElement, {subtree:true, childList:true, attributes:true});
     }
-  }, 300);
+  }, 250);
 })();
 </script>
+
 
 
 
