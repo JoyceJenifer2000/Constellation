@@ -201,6 +201,98 @@
         defer></script>
 
 
+<!-- Pega chat layout fix: paste this BEFORE </body> -->
+<style>
+  /* Target the widget iframe element and common widget container names */
+  iframe[src*="pega.digital"],
+  .pega-wm, .pega-widget {
+    position: fixed !important;
+    right: 20px !important;            /* distance from right edge */
+    bottom: 20px !important;           /* distance from bottom edge */
+    width: 360px !important;
+    height: 520px !important;
+    max-height: calc(100vh - 40px) !important; /* keeps it inside viewport */
+    max-width: 95vw !important;
+    z-index: 999999 !important;        /* ensure it's on top */
+    border-radius: 8px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25) !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Make widget smaller on small screens */
+  @media (max-width: 700px) {
+    iframe[src*="pega.digital"],
+    .pega-wm, .pega-widget {
+      right: 10px !important;
+      bottom: 70px !important;   /* lift a bit above bottom controls */
+      width: 320px !important;
+      height: 440px !important;
+      max-height: calc(100vh - 80px) !important;
+    }
+  }
+
+  /* When widget has collapsed "button" version make sure it's visible and not transparent */
+  iframe[src*="pega.digital"][style*="opacity"] {
+    opacity: 1 !important;
+  }
+</style>
+
+<script>
+/* Small helper: wait for widget iframe to appear and patch any inline style that causes overlap.
+   It will also reapply styles on resize/scroll just in case page scripts change it later.
+*/
+(function () {
+  const selector = 'iframe[src*="pega.digital"]';
+  const applyStyles = (el) => {
+    if (!el) return;
+    try {
+      // clear problematic inline values some setups inject (opacity:2, right:0 etc)
+      el.style.position = 'fixed';
+      el.style.right = '20px';
+      el.style.bottom = '20px';
+      el.style.width = '360px';
+      el.style.height = '520px';
+      el.style.maxHeight = 'calc(100vh - 40px)';
+      el.style.maxWidth = '95vw';
+      el.style.zIndex = '999999';
+      el.style.borderRadius = '8px';
+      el.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+      el.style.overflow = 'visible';
+      el.style.opacity = ''; // remove broken opacity if present
+    } catch (e) {
+      // can't access cross-origin iframe content — we only change the iframe element attributes
+      // ignore errors
+    }
+  };
+
+  // poll for the widget iframe (runs briefly, stops after it's found)
+  let tries = 0;
+  const maxTries = 50;
+  const poll = setInterval(() => {
+    tries++;
+    const el = document.querySelector(selector);
+    if (el) {
+      applyStyles(el);
+      clearInterval(poll);
+      // keep applying on resize/scroll in case some other script overrides later
+      window.addEventListener('resize', () => applyStyles(el));
+      window.addEventListener('scroll', () => applyStyles(el));
+      // also observe attribute changes on the iframe element itself and reapply if changed
+      const obs = new MutationObserver(() => applyStyles(el));
+      obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
+    if (tries > maxTries) clearInterval(poll);
+  }, 150);
+
+  // Defensive: if widget uses alternative container classes, re-run patch for those too
+  const extraSelectorCheck = () => {
+    const alt = document.querySelector('.pega-wm, .pega-widget');
+    if (alt) applyStyles(alt);
+  };
+  setTimeout(extraSelectorCheck, 500);
+})();
+</script>
 
 
 </body>
