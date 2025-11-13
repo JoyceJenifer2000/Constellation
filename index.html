@@ -199,143 +199,76 @@
 <script id="pega-wm-chat"
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
-
-<!-- REPLACE previous Pega widget helper with this improved block (paste before </body>) -->
+<!-- Pega widget CSS-only layout fix - paste BEFORE </body> -->
 <style>
-  /* Strong, defensive rules for the widget wrapper & iframe */
-  iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"] {
+  /* Strong rule to pin the widget and make it visible */
+  iframe[src*="pega.digital"],
+  .pega-wm,
+  .pega-widget,
+  [id^="pega-wm"],
+  [class*="pega-widget"] {
     position: fixed !important;
-    right: 20px !important;
-    bottom: 88px !important;              /* lifted above footer */
+    right: 28px !important;
+    bottom: 96px !important;           /* lift above footer / page controls */
     width: 360px !important;
-    max-width: calc(100vw - 40px) !important;
     height: 520px !important;
-    max-height: calc(70vh) !important;
-    overflow: auto !important;
+    max-width: calc(100vw - 56px) !important;
+    max-height: calc(80vh) !important;
     z-index: 2147483647 !important;
     display: block !important;
     visibility: visible !important;
     border-radius: 8px !important;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.22) !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,.22) !important;
     background: transparent !important;
-    transform: none !important;
     pointer-events: auto !important;
+    transform: none !important;
   }
 
+  /* Ensure iframe fills the container */
   iframe[src*="pega.digital"] {
     width: 100% !important;
     height: 100% !important;
+    border: none !important;
     display: block !important;
   }
 
-  /* Slightly smaller on small screens and raised more above the bottom controls */
-  @media (max-width: 720px) {
-    iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"] {
-      right: 12px !important;
-      bottom: 96px !important;
-      width: 300px !important;
-      height: 460px !important;
-      max-height: calc(65vh) !important;
-      max-width: calc(100vw - 24px) !important;
-    }
+  /* Reserve page space on the right so content/footer won't be under widget */
+  html, body {
+    /* desktop default: reserve wide margin to avoid overlap */
+    padding-right: 520px !important;
+    box-sizing: border-box !important;
   }
 
-  /* hide known duplicate offscreen containers if they exist */
-  .pega-widget-hidden, .pega-duplicate-widget { display: none !important; }
+  /* Smaller screens: reduce reserved space, raise widget */
+  @media (max-width: 1100px) {
+    html, body { padding-right: 420px !important; }
+    iframe[src*="pega.digital"],
+    .pega-wm,
+    .pega-widget { right: 20px !important; bottom: 96px !important; width: 340px !important; height: 480px !important; }
+  }
+
+  @media (max-width: 820px) {
+    html, body { padding-right: 320px !important; }
+    iframe[src*="pega.digital"],
+    .pega-wm,
+    .pega-widget { right: 14px !important; bottom: 96px !important; width: 300px !important; height: 460px !important; max-height: 65vh !important; }
+  }
+
+  @media (max-width: 520px) {
+    /* On very small screens remove page padding so mobile UX not broken.
+       Widget will still sit above content; user can scroll it into view. */
+    html, body { padding-right: 0 !important; }
+    iframe[src*="pega.digital"],
+    .pega-wm,
+    .pega-widget { right: 10px !important; bottom: 120px !important; width: 300px !important; height: 420px !important; max-width: calc(100vw - 20px) !important; }
+  }
+
+  /* If the site creates duplicate overlay containers, hide them (safe) */
+  .pega-widget-hidden, .pega-duplicate-widget, .pega-wm-legacy { display: none !important; }
+
+  /* Safety: ensure footer links remain clickable (no pointer capture) */
+  footer, .site-footer, .global-footer { z-index: 10 } 
 </style>
-
-<script>
-(function () {
-  const DESKTOP_BREAKPOINT = 720;
-  // Reserve safe padding on the page so site content doesn't sit under the widget.
-  function reserveRightPadding() {
-    try {
-      const widget = document.querySelector('iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"]');
-      if (!widget) {
-        clearPadding(); return;
-      }
-      const rect = widget.getBoundingClientRect();
-      // if widget width is zero (not rendered yet) use fallback width
-      const width = rect.width && rect.width > 60 ? rect.width : 360;
-      // add some breathing room
-      const pad = Math.min(width + 96, Math.round(window.innerWidth * 0.6));
-      if (window.innerWidth > DESKTOP_BREAKPOINT) {
-        document.documentElement.style.setProperty('padding-right', pad + 'px', 'important');
-        document.body.style.setProperty('padding-right', pad + 'px', 'important');
-      } else {
-        clearPadding();
-      }
-    } catch (e) {
-      // fail silently
-      console.warn('reserveRightPadding error', e);
-    }
-  }
-
-  function clearPadding() {
-    document.documentElement.style.removeProperty('padding-right');
-    document.body.style.removeProperty('padding-right');
-  }
-
-  // Make sure the widget is always fully visible vertically:
-  function enforceWidgetVisibility() {
-    try {
-      const w = document.querySelector('iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"]');
-      if (!w) return;
-      const r = w.getBoundingClientRect();
-      // if widget top is higher than viewport or bottom off-screen, nudge it
-      if (r.top < 8) {
-        w.style.bottom = (window.innerHeight - (r.height + 12)) + 'px';
-      } else if (r.bottom > window.innerHeight - 8) {
-        // ensure widget bottom is at least 88px above viewport bottom
-        w.style.bottom = '88px';
-      }
-    } catch (e) {
-      console.warn('enforceWidgetVisibility error', e);
-    }
-  }
-
-  // run a few times to cover late widget init
-  window.addEventListener('load', () => {
-    setTimeout(reserveRightPadding, 600);
-    setTimeout(enforceWidgetVisibility, 700);
-    setTimeout(reserveRightPadding, 1400);
-    setTimeout(enforceWidgetVisibility, 1500);
-  });
-
-  // debounce helper
-  let t;
-  function debounce(fn, ms) {
-    clearTimeout(t); t = setTimeout(fn, ms||120);
-  }
-
-  window.addEventListener('resize', () => { debounce(reserveRightPadding); debounce(enforceWidgetVisibility); });
-  window.addEventListener('orientationchange', () => { debounce(reserveRightPadding); debounce(enforceWidgetVisibility); });
-
-  // watch DOM for widget insert/removal and recompute
-  const observer = new MutationObserver(muts => {
-    const found = document.querySelector('iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"]');
-    if (found) {
-      // small delay gives widget internal content time to layout
-      setTimeout(reserveRightPadding, 300);
-      setTimeout(enforceWidgetVisibility, 350);
-    } else {
-      clearPadding();
-    }
-  });
-  observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
-
-  // Expose debug helpers from console
-  window.__pegaLayoutFix = {
-    apply: reserveRightPadding,
-    clear: clearPadding,
-    nudge: enforceWidgetVisibility
-  };
-
-})();
-</script>
-
-
-
 
 
 </body>
