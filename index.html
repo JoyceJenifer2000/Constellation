@@ -200,119 +200,121 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-<!-- Stronger fix: force widget wrapper + iframe into a fixed box above footer -->
+<!-- Pega widget layout helper - paste this before </body> -->
+<style>
+  /* keep these selectors broad - they target the widget iframe and common wrappers */
+  iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"] {
+    position: fixed !important;
+    right: 20px !important;
+    bottom: 24px !important;
+    width: 360px !important;
+    max-width: calc(100vw - 40px) !important;
+    height: 520px !important;
+    max-height: calc(75vh) !important;
+    overflow: hidden !important;
+    z-index: 2147483647 !important;
+    display: block !important;
+    visibility: visible !important;
+    border-radius: 8px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18) !important;
+    background: transparent !important;
+    transform: none !important; /* cancel any floating transforms */
+    pointer-events: auto !important;
+  }
+
+  /* make any nested iframe fill the wrapper */
+  iframe[src*="pega.digital"] {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 75vh !important;
+    display: block !important;
+  }
+
+  /* responsive adjustments */
+  @media (max-width: 720px) {
+    iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"] {
+      right: 12px !important;
+      bottom: 70px !important;
+      width: 300px !important;
+      height: 440px !important;
+      max-width: calc(100vw - 24px) !important;
+      max-height: calc(65vh) !important;
+    }
+  }
+
+  /* visually hide duplicates that are often used as off-canvas containers (only if present) */
+  .pega-widget-hidden, .pega-duplicate-widget { display:none !important; }
+</style>
+
 <script>
-(function(){
-  const DESKTOP_WIDGET_H = 500;
-  const MOBILE_WIDGET_H = 420;
-  const EXTRA_GAP = 24; // gap between widget and footer, increase if overlap
+(function () {
+  // Small helper to avoid overlap with site content: add body padding-right while widget visible on desktop
+  const DESKTOP_BREAKPOINT = 720; // px
+  function computeAndApplyPadding() {
+    try {
+      // find widget wrapper (prefer visible iframe or wrapper)
+      const candidates = Array.from(document.querySelectorAll('iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"]'));
+      if (!candidates.length) return removePadding();
 
-  function q(sel){return document.querySelector(sel);}
-  function findFooter(){
-    return q('footer, .site-footer, #footer, .footer, [role="contentinfo"]');
-  }
-  function findWrapper(){
-    // widget wrapper class variants used earlier
-    return q('.pega-wm, .pega-widget') || q('[id^="pega-wm"]');
-  }
-  function findIframe(){
-    return q('iframe[src*="pega.digital"]') || (findWrapper() && findWrapper().querySelector('iframe'));
-  }
+      // pick the most reasonable candidate: prefer one with small width and >= 200px height
+      let keeper = candidates.find(el => {
+        const r = el.getBoundingClientRect();
+        return r.width <= 600 && r.height >= 180;
+      }) || candidates[0];
 
-  function computeValues(){
-    const isMobile = window.innerWidth <= 600;
-    const widgetH = isMobile ? MOBILE_WIDGET_H : DESKTOP_WIDGET_H;
-    const footer = findFooter();
-    const footerH = footer ? (footer.offsetHeight || footer.getBoundingClientRect().height || 0) : 0;
-    const pad = widgetH + footerH + EXTRA_GAP;
-    return { isMobile, widgetH, footerH, pad };
-  }
+      // measure effective width to reserve
+      const rect = keeper.getBoundingClientRect();
+      const widgetWidth = Math.min(Math.max(rect.width || 360, 280), window.innerWidth * 0.6);
 
-  function forceBox(el, bottomPx, widgetH, isMobile){
-    if(!el) return;
-    // clear problematic positioning and pin it
-    el.style.position = 'fixed';
-    el.style.right = isMobile ? '12px' : '20px';
-    el.style.left = 'auto';
-    el.style.bottom = bottomPx;
-    el.style.top = 'auto';
-    el.style.transform = 'none';
-    el.style.width = isMobile ? '300px' : '360px';
-    el.style.maxWidth = '90vw';
-    el.style.height = widgetH + 'px';
-    el.style.maxHeight = '70vh';
-    el.style.overflow = 'auto';
-    el.style.zIndex = '2147483647';
-    el.style.display = 'block';
-    el.style.visibility = 'visible';
-    el.style.boxSizing = 'border-box';
-    // remove pointer-events issues
-    el.style.pointerEvents = 'auto';
-  }
-
-  function applyFix(){
-    const { isMobile, widgetH, footerH, pad } = computeValues();
-    // stable padding on the page so widget cannot hide content
-    const curPad = parseInt(getComputedStyle(document.documentElement).paddingBottom || 0, 10) || 0;
-    if(curPad !== pad){
-      document.documentElement.style.paddingBottom = pad + 'px';
-      document.body.style.paddingBottom = pad + 'px';
-    }
-
-    const wrapper = findWrapper();
-    const iframe = findIframe();
-    const bottomPx = (footerH ? (footerH + EXTRA_GAP) : EXTRA_GAP) + 'px';
-
-    // Move wrapper and iframe to body to escape any stacking context
-    try{
-      if(wrapper && wrapper.parentElement !== document.body){
-        document.body.appendChild(wrapper);
+      if (window.innerWidth > DESKTOP_BREAKPOINT) {
+        // add padding-right to body to avoid content going under widget
+        document.documentElement.style.setProperty('padding-right', (widgetWidth + 40) + 'px', 'important');
+        document.body.style.setProperty('padding-right', (widgetWidth + 40) + 'px', 'important');
+      } else {
+        removePadding();
       }
-      if(iframe && iframe.parentElement !== document.body){
-        // if iframe is nested inside wrapper this will move it; that's OK
-        document.body.appendChild(iframe);
-      }
-    }catch(e){ /* ignore DOM move failures */ }
-
-    // Prefer to style wrapper (it should contain the visible chat chrome).
-    const box = wrapper || iframe;
-    if(box){
-      // clear inline attributes that can keep it pinned inside another layout
-      box.removeAttribute('data-top');
-      box.removeAttribute('data-left');
-      // force the box style
-      forceBox(box, bottomPx, widgetH, isMobile);
-
-      // Propagate sizing into nested iframe if present so content scrolls inside
-      const nestedIframe = box.tagName === 'IFRAME' ? box : box.querySelector('iframe');
-      if(nestedIframe){
-        try {
-          // style the iframe itself (if same-origin styling won't throw)
-          nestedIframe.style.position = 'relative';
-        } catch(e){}
-        nestedIframe.style.width = '100%';
-        nestedIframe.style.height = '100%';
-        nestedIframe.style.maxHeight = '70vh';
-        nestedIframe.style.boxSizing = 'border-box';
-      }
+    } catch (e) {
+      console.warn('widget padding helper error', e);
     }
   }
 
-  // Poll until widget appears then keep listeners for resize/mutations
-  let ticks = 0;
-  const poll = setInterval(()=>{
-    ticks++;
-    applyFix();
-    if((findWrapper() || findIframe()) || ticks > 80){
-      clearInterval(poll);
-      // debounce-like refresh on resize / mutations
-      let scheduled = false;
-      const schedule = ()=>{ if(scheduled) return; scheduled = true; requestAnimationFrame(()=>{ scheduled=false; applyFix(); }); };
-      window.addEventListener('resize', schedule, {passive:true});
-      window.addEventListener('orientationchange', schedule, {passive:true});
-      new MutationObserver(schedule).observe(document.documentElement, {subtree:true, childList:true, attributes:true});
-    }
-  }, 250);
+  function removePadding() {
+    document.documentElement.style.removeProperty('padding-right');
+    document.body.style.removeProperty('padding-right');
+  }
+
+  // Run once after page load (delay a touch to let widget initialize)
+  window.addEventListener('load', () => {
+    setTimeout(computeAndApplyPadding, 600);
+  });
+
+  // Also run after a few seconds in case widget loads late
+  setTimeout(computeAndApplyPadding, 1800);
+
+  // Recompute on resize/orientation change (debounced)
+  let t;
+  function debounced() {
+    clearTimeout(t);
+    t = setTimeout(computeAndApplyPadding, 120);
+  }
+  window.addEventListener('resize', debounced);
+  window.addEventListener('orientationchange', debounced);
+
+  // If the widget is removed/closed by its own code, clear reserved padding
+  // (observe DOM changes to detect widget removal)
+  const obs = new MutationObserver(muts => {
+    // if no widget elements found then remove padding
+    const any = document.querySelector('iframe[src*="pega.digital"], .pega-wm, .pega-widget, [id^="pega-wm"], [class*="pega-widget"]');
+    if (!any) removePadding();
+  });
+  obs.observe(document.documentElement || document.body, { childList: true, subtree: true });
+
+  // One manual convenience: expose a debug function to console
+  window.__fixPegaWidgetLayout = function(action) {
+    if (action === 'pad') computeAndApplyPadding();
+    if (action === 'remove') removePadding();
+  };
+
 })();
 </script>
 
