@@ -200,189 +200,182 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-
-<!-- Pega widget (replace src with your widget URL if different) -->
+<!-- Pega widget (keep your original src if different) -->
 <script id="pega-wm-chat" src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js" defer></script>
 
-<!-- Inline styling + controller to prevent auto-open and control size -->
+<!-- Inline CSS + JS: no extra icon; use native launcher; stop overlap -->
 <style>
-/* container marker we will attach to the widget (keeps selectors clean) */
-[data-widget-pega] { position: fixed !important; right: 24px !important; bottom: 24px !important; z-index: 2147483647 !important; }
+  /* safe overrides; restrict width and allow vertical scrolling */
+  [data-widget-pega], [id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat {
+    position: fixed !important;
+    right: 24px !important;
+    bottom: 24px !important;
+    z-index: 2147483647 !important;
+    max-width: 360px !important;
+    width: auto !important;
+    box-sizing: border-box !important;
+    transform: none !important; /* avoid transform-parent issues */
+  }
 
-/* visual size limits for the chat panel */
-[data-widget-pega] .wm-panel,
-[data-widget-pega] .pegaChatPanel,
-[data-widget-pega] iframe {
-  width: 360px !important;
-  max-width: 360px !important;
-  max-height: 80vh !important;
-  box-sizing: border-box !important;
-}
+  /* clamp the visible panel/iframe */
+  [data-widget-pega] .wm-panel,
+  [data-widget-pega] .pegaChatPanel,
+  [data-widget-pega] iframe,
+  [id^="pega"] .wm-panel,
+  .wm-panel, .pegaChatPanel, iframe[src*="pega"] {
+    width: 360px !important;
+    max-width: 360px !important;
+    max-height: 80vh !important;
+    overflow: auto !important;
+    box-sizing: border-box !important;
+  }
 
-/* make sure widget wrapper can't grow full width */
-[data-widget-pega] { max-width: 360px !important; }
-
-/* hide any built-in launcher icons/buttons created by widget */
-.pega-launcher, .wm-launcher, .pega-wm-launcher, .pegaChatLauncher, .widget-launcher { display: none !important; }
-
-/* our toggle button */
-#pegaManualToggle {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #FFC400;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
-  border: none;
-  z-index: 2147483650;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-}
-
-/* small icon styling inside the button */
-#pegaManualToggle svg, #pegaManualToggle .icon {
-  width: 24px; height: 24px;
-}
+  /* if the widget uses a footer area inside, keep it inside the 80vh */
+  [data-widget-pega] .wm-footer, [data-widget-pega] .pega-footer { box-sizing: border-box; }
 </style>
 
 <script>
-(function initPegaController() {
-  var tries = 0, maxTries = 120;
-  var toggleBtn = null;
+(function fixPegaWidget() {
+  var tries = 0, maxTries = 120, pollInterval = 300;
+  var gap = 20; // gap above footer
 
-  function findWidget() {
-    // broad attempt to find the widget root inserted by Pega
+  function findWidgetRoot() {
+    // broad selectors for common Pega widget roots/wrappers
     return document.querySelector('[id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat, iframe[src*="pega"]');
   }
 
-  function hideNativeLaunchers() {
-    var nativeSelectors = ['.pega-launcher', '.wm-launcher', '.pega-wm-launcher', '.pegaChatLauncher', '.widget-launcher'];
-    nativeSelectors.forEach(function(sel){ 
-      var el = document.querySelector(sel);
-      if (el) el.style.display = 'none';
-    });
+  function findPanel(root) {
+    if (!root) return null;
+    return root.querySelector('.wm-panel, .pegaChatPanel, .pega-chat-panel, iframe') || root;
   }
 
-  function styleWidget(widget) {
-    if (!widget) return false;
+  function findNativeLauncher() {
+    return document.querySelector('.wm-launcher, .pega-launcher, .pega-wm-launcher, .pegaChatLauncher, [data-launcher], .widget-launcher');
+  }
 
-    // move widget to body if necessary (prevents ancestor transform issues)
+  function moveToBody(node) {
+    if (!node) return;
     try {
-      if (widget.parentElement !== document.body) {
-        document.body.appendChild(widget);
+      if (node.parentElement !== document.body) {
+        document.body.appendChild(node);
+        node.setAttribute('data-widget-pega','1');
+      } else {
+        node.setAttribute('data-widget-pega','1');
       }
-      widget.setAttribute('data-widget-pega','1');
-    } catch(e){ /* ignore */ }
+    } catch (e) {
+      // ignore
+    }
+  }
 
-    // find the visible panel / wrapper inside widget and clamp size
-    var panel = widget.querySelector('.wm-panel, .pegaChatPanel, .pega-web-messaging, iframe') || widget;
+  function nudgeAboveFooter(node) {
+    if (!node) return;
+    var footer = document.querySelector('footer, .footer, .site-footer, [role="contentinfo"]');
+    var footerHeight = (footer && footer.offsetHeight) ? footer.offsetHeight : 0;
+    var bottomValue = Math.max(gap, footerHeight + gap);
+    node.style.position = 'fixed';
+    node.style.bottom = bottomValue + 'px';
+    node.style.right = '24px';
+    node.style.zIndex = '2147483647';
+  }
+
+  function clampPanelSizing(panel) {
+    if (!panel) return;
     panel.style.width = '360px';
     panel.style.maxWidth = '360px';
     panel.style.maxHeight = '80vh';
-    panel.style.boxSizing = 'border-box';
     panel.style.overflow = 'auto';
-
-    // ensure fixed positioning
-    widget.style.position = 'fixed';
-    widget.style.right = '24px';
-    widget.style.bottom = '24px';
-    widget.style.zIndex = '2147483647';
-    widget.style.maxWidth = '360px';
-
-    // prevent auto-open: hide the message panel/frame initially
-    // common inner nodes: .wm-panel, .pega-chat-panel, iframe, .pegaChatPanel
-    var inner = widget.querySelector('.wm-panel, .pega-chat-panel, .pegaChatPanel, iframe');
-    if (inner) {
-      inner.style.display = 'none';
-      inner.setAttribute('data-pega-hidden','1');
-    } else {
-      // fallback: hide all direct children (safe)
-      Array.from(widget.children).forEach(function(c){
-        c.style.display = 'none';
-        c.setAttribute && c.setAttribute('data-pega-hidden','1');
-      });
-    }
-
-    // hide any native launcher the widget created
-    hideNativeLaunchers();
-
-    return true;
+    panel.style.boxSizing = 'border-box';
+    panel.style.transform = 'none';
   }
 
-  function toggleWidget() {
-    var widget = findWidget();
-    if (!widget) return;
-    // try common inner selectors
-    var inner = widget.querySelector('.wm-panel, .pega-chat-panel, .pegaChatPanel, iframe');
-    if (!inner) inner = widget;
-    var hidden = inner.getAttribute && inner.getAttribute('data-pega-hidden') === '1';
-    if (hidden) {
-      inner.style.display = ''; // let CSS control sizing (we set sizes above)
-      inner.removeAttribute('data-pega-hidden');
-      // optionally bring iframe into view / focus
-      var frame = inner.tagName === 'IFRAME' ? inner : inner.querySelector('iframe');
-      if (frame && frame.contentWindow) try { frame.contentWindow.focus(); } catch(e){}
-      // change toggle appearance
-      toggleBtn.innerText = '✕';
-    } else {
-      inner.style.display = 'none';
-      inner.setAttribute('data-pega-hidden','1');
-      toggleBtn.innerText = '✚';
+  function hideIfAutoOpened(panel) {
+    if (!panel) return;
+    // if visible and large enough (auto-opened), hide it (native launcher still present)
+    var cs = window.getComputedStyle(panel);
+    var isVisible = cs.display !== 'none' && cs.visibility !== 'hidden' && panel.offsetHeight > 10;
+    if (isVisible) {
+      // hide panel content but keep wrapper so native launcher can toggle it
+      panel.style.display = 'none';
+      panel.setAttribute('data-pega-hidden','1');
     }
   }
 
-  function ensureToggleButton() {
-    if (document.getElementById('pegaManualToggle')) return;
-    toggleBtn = document.createElement('button');
-    toggleBtn.id = 'pegaManualToggle';
-    toggleBtn.title = 'Open chat';
-    toggleBtn.type = 'button';
-    toggleBtn.innerText = '✚';
-    toggleBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      toggleWidget();
+  function attachLauncherToggle(launcher, panel) {
+    if (!launcher || !panel) return;
+    // avoid double-binding
+    if (launcher.__pega_toggle_attached) return;
+    launcher.__pega_toggle_attached = true;
+
+    launcher.addEventListener('click', function (e) {
+      // allow widget's native handler first (some widgets toggle after a short delay)
+      setTimeout(function(){
+        var cs = window.getComputedStyle(panel);
+        var hidden = panel.getAttribute && panel.getAttribute('data-pega-hidden') === '1';
+        // if our script previously hid it, un-hide; otherwise respect widget default
+        if (hidden) {
+          panel.style.display = '';
+          panel.removeAttribute('data-pega-hidden');
+        } else {
+          // if widget's own toggle closed it, keep it closed (no action)
+          // if it's visible but we want to ensure size, reapply clamp
+          clampPanelSizing(panel);
+        }
+      }, 200);
     });
-    document.body.appendChild(toggleBtn);
   }
 
-  // attempt to initialize repeatedly while widget loads
   var iv = setInterval(function(){
     tries++;
     try {
-      var widget = findWidget();
-      if (widget) {
-        styleWidget(widget);
-        ensureToggleButton();
-        // we've styled; keep trying a few more times to catch late inner changes
-        if (tries > 8) { clearInterval(iv); }
+      var root = findWidgetRoot();
+      if (!root) {
+        if (tries >= maxTries) clearInterval(iv);
+        return;
       }
-      if (tries >= maxTries) clearInterval(iv);
+
+      // if the root is an iframe element, use its parent wrapper if possible;
+      // but still apply attribute to the iframe node
+      moveToBody(root);
+
+      var panel = findPanel(root);
+      clampPanelSizing(panel);
+      nudgeAboveFooter(root);
+      hideIfAutoOpened(panel);
+
+      // attach to native launcher so user still uses default open action
+      var launcher = findNativeLauncher();
+      if (launcher) attachLauncherToggle(launcher, panel);
+
+      // keep trying a few more times because widget may re-render inner DOM
+      if (tries > 10) clearInterval(iv);
     } catch (e) {
       if (tries >= maxTries) clearInterval(iv);
     }
-  }, 300);
+  }, pollInterval);
 
-  // also observe DOM changes (widget may re-render)
+  // react to layout changes (footer height may change)
+  window.addEventListener('resize', function(){
+    var root = findWidgetRoot();
+    if (root) nudgeAboveFooter(root);
+  });
+  window.addEventListener('scroll', function(){
+    var root = findWidgetRoot();
+    if (root) nudgeAboveFooter(root);
+  });
+
+  // observe DOM for widget re-renders
   var mo = new MutationObserver(function(){
-    var w = findWidget();
-    if (w) {
-      styleWidget(w);
+    var root = findWidgetRoot();
+    if (root) {
+      var panel = findPanel(root);
+      clampPanelSizing(panel);
+      nudgeAboveFooter(root);
     }
   });
   mo.observe(document.body, {childList: true, subtree: true});
-
-  // ensure resize keeps sizes sane
-  window.addEventListener('resize', function(){
-    var w = findWidget();
-    if (w) styleWidget(w);
-  });
 })();
 </script>
+
 
 
 
