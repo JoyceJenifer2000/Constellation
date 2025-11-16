@@ -200,181 +200,95 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-<!-- Pega widget (keep your original src if different) -->
-<script id="pega-wm-chat" src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js" defer></script>
-
-<!-- Inline CSS + JS: no extra icon; use native launcher; stop overlap -->
-<style>
-  /* safe overrides; restrict width and allow vertical scrolling */
-  [data-widget-pega], [id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat {
-    position: fixed !important;
-    right: 24px !important;
-    bottom: 24px !important;
-    z-index: 2147483647 !important;
-    max-width: 360px !important;
-    width: auto !important;
-    box-sizing: border-box !important;
-    transform: none !important; /* avoid transform-parent issues */
-  }
-
-  /* clamp the visible panel/iframe */
-  [data-widget-pega] .wm-panel,
-  [data-widget-pega] .pegaChatPanel,
-  [data-widget-pega] iframe,
-  [id^="pega"] .wm-panel,
-  .wm-panel, .pegaChatPanel, iframe[src*="pega"] {
-    width: 360px !important;
-    max-width: 360px !important;
-    max-height: 80vh !important;
-    overflow: auto !important;
-    box-sizing: border-box !important;
-  }
-
-  /* if the widget uses a footer area inside, keep it inside the 80vh */
-  [data-widget-pega] .wm-footer, [data-widget-pega] .pega-footer { box-sizing: border-box; }
-</style>
-
+<!-- Replace previous overrides with this: restore original widget sizing but keep it above footer -->
 <script>
-(function fixPegaWidget() {
-  var tries = 0, maxTries = 120, pollInterval = 300;
-  var gap = 20; // gap above footer
+(function restorePegaSizing(){
+  var tries = 0, maxTries = 120, poll = 300, gap = 20;
 
-  function findWidgetRoot() {
-    // broad selectors for common Pega widget roots/wrappers
+  function findRoot(){
     return document.querySelector('[id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat, iframe[src*="pega"]');
   }
 
-  function findPanel(root) {
-    if (!root) return null;
-    return root.querySelector('.wm-panel, .pegaChatPanel, .pega-chat-panel, iframe') || root;
-  }
-
-  function findNativeLauncher() {
-    return document.querySelector('.wm-launcher, .pega-launcher, .pega-wm-launcher, .pegaChatLauncher, [data-launcher], .widget-launcher');
-  }
-
-  function moveToBody(node) {
+  function moveToBody(node){
     if (!node) return;
     try {
       if (node.parentElement !== document.body) {
         document.body.appendChild(node);
-        node.setAttribute('data-widget-pega','1');
-      } else {
-        node.setAttribute('data-widget-pega','1');
       }
-    } catch (e) {
-      // ignore
-    }
+      node.setAttribute && node.setAttribute('data-widget-pega','1');
+    } catch(e){}
   }
 
-  function nudgeAboveFooter(node) {
+  function nudgeAboveFooter(node){
     if (!node) return;
     var footer = document.querySelector('footer, .footer, .site-footer, [role="contentinfo"]');
     var footerHeight = (footer && footer.offsetHeight) ? footer.offsetHeight : 0;
-    var bottomValue = Math.max(gap, footerHeight + gap);
+    var bottomVal = Math.max(gap, footerHeight + gap) + 'px';
     node.style.position = 'fixed';
-    node.style.bottom = bottomValue + 'px';
     node.style.right = '24px';
+    node.style.bottom = bottomVal;
     node.style.zIndex = '2147483647';
   }
 
-  function clampPanelSizing(panel) {
-    if (!panel) return;
-    panel.style.width = '360px';
-    panel.style.maxWidth = '360px';
-    panel.style.maxHeight = '80vh';
-    panel.style.overflow = 'auto';
-    panel.style.boxSizing = 'border-box';
-    panel.style.transform = 'none';
-  }
-
-  function hideIfAutoOpened(panel) {
-    if (!panel) return;
-    // if visible and large enough (auto-opened), hide it (native launcher still present)
-    var cs = window.getComputedStyle(panel);
-    var isVisible = cs.display !== 'none' && cs.visibility !== 'hidden' && panel.offsetHeight > 10;
-    if (isVisible) {
-      // hide panel content but keep wrapper so native launcher can toggle it
-      panel.style.display = 'none';
-      panel.setAttribute('data-pega-hidden','1');
-    }
-  }
-
-  function attachLauncherToggle(launcher, panel) {
-    if (!launcher || !panel) return;
-    // avoid double-binding
-    if (launcher.__pega_toggle_attached) return;
-    launcher.__pega_toggle_attached = true;
-
-    launcher.addEventListener('click', function (e) {
-      // allow widget's native handler first (some widgets toggle after a short delay)
-      setTimeout(function(){
-        var cs = window.getComputedStyle(panel);
-        var hidden = panel.getAttribute && panel.getAttribute('data-pega-hidden') === '1';
-        // if our script previously hid it, un-hide; otherwise respect widget default
-        if (hidden) {
-          panel.style.display = '';
-          panel.removeAttribute('data-pega-hidden');
-        } else {
-          // if widget's own toggle closed it, keep it closed (no action)
-          // if it's visible but we want to ensure size, reapply clamp
-          clampPanelSizing(panel);
-        }
-      }, 200);
+  function restoreSizing(node){
+    if (!node) return;
+    // Remove our previous forced inline sizing if present
+    var keys = ['width','maxWidth','max-height','maxHeight','overflow','boxSizing','transform'];
+    keys.forEach(function(k){
+      try { node.style[k] = ''; } catch(e){}
     });
+
+    // Also remove sizing from likely inner panel(s) so widget's original CSS takes over
+    var innerSelectors = ['.wm-panel','.pegaChatPanel','.pega-chat-panel','iframe','.pega-web-messaging'];
+    innerSelectors.forEach(function(sel){
+      var el = node.querySelector(sel);
+      if (el) {
+        try {
+          el.style.width = '';
+          el.style.maxWidth = '';
+          el.style.maxHeight = '';
+          el.style.overflow = '';
+          el.style.boxSizing = '';
+          el.style.display = ''; // in case we hid it earlier
+          el.removeAttribute && el.removeAttribute('data-pega-hidden');
+        } catch(e){}
+      }
+    });
+
+    // if the root itself had inline sizing, clear those too
+    try {
+      node.style.removeProperty('width');
+      node.style.removeProperty('max-width');
+      node.style.removeProperty('max-height');
+    } catch(e){}
   }
 
   var iv = setInterval(function(){
     tries++;
-    try {
-      var root = findWidgetRoot();
-      if (!root) {
-        if (tries >= maxTries) clearInterval(iv);
-        return;
-      }
-
-      // if the root is an iframe element, use its parent wrapper if possible;
-      // but still apply attribute to the iframe node
-      moveToBody(root);
-
-      var panel = findPanel(root);
-      clampPanelSizing(panel);
-      nudgeAboveFooter(root);
-      hideIfAutoOpened(panel);
-
-      // attach to native launcher so user still uses default open action
-      var launcher = findNativeLauncher();
-      if (launcher) attachLauncherToggle(launcher, panel);
-
-      // keep trying a few more times because widget may re-render inner DOM
-      if (tries > 10) clearInterval(iv);
-    } catch (e) {
+    var root = findRoot();
+    if (!root) {
       if (tries >= maxTries) clearInterval(iv);
+      return;
     }
-  }, pollInterval);
 
-  // react to layout changes (footer height may change)
-  window.addEventListener('resize', function(){
-    var root = findWidgetRoot();
-    if (root) nudgeAboveFooter(root);
-  });
-  window.addEventListener('scroll', function(){
-    var root = findWidgetRoot();
-    if (root) nudgeAboveFooter(root);
-  });
+    moveToBody(root);
+    restoreSizing(root);
+    nudgeAboveFooter(root);
 
-  // observe DOM for widget re-renders
-  var mo = new MutationObserver(function(){
-    var root = findWidgetRoot();
-    if (root) {
-      var panel = findPanel(root);
-      clampPanelSizing(panel);
-      nudgeAboveFooter(root);
-    }
-  });
-  mo.observe(document.body, {childList: true, subtree: true});
+    // stop after a few successful attempts (widget may re-render; keep short)
+    if (tries > 12) clearInterval(iv);
+  }, poll);
+
+  // keep position adjusted if footer/viewport changes
+  window.addEventListener('resize', function(){ var r = findRoot(); if (r) nudgeAboveFooter(r); });
+  window.addEventListener('scroll', function(){ var r = findRoot(); if (r) nudgeAboveFooter(r); });
+
+  // observe DOM to catch re-renders and restore sizing again
+  var mo = new MutationObserver(function(){ var r = findRoot(); if (r) { restoreSizing(r); nudgeAboveFooter(r); }});
+  mo.observe(document.body, {childList:true, subtree:true});
 })();
 </script>
+
 
 
 
