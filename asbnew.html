@@ -200,6 +200,123 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
+<!-- Pega widget (your existing script) -->
+<script id="pega-wm-chat" src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js" defer></script>
+
+<!-- Inline CSS + JS override (paste right after the widget script) -->
+<style>
+/* strong overrides so widget docks above footer and doesn't get clipped */
+[data-widget-pega], [id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat {
+  position: fixed !important;
+  right: 24px !important;
+  bottom: 24px !important;
+  z-index: 2147483647 !important;
+  max-width: 420px !important;
+  width: auto !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
+  border-radius: 6px !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+
+/* iframe inside widget shouldn't exceed viewport */
+[data-widget-pega] iframe, [id^="pega"] iframe, [class*="pega"] iframe {
+  max-height: 70vh !important;
+}
+
+/* mobile: full width bottom dock */
+@media (max-width: 640px) {
+  [data-widget-pega], [id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    max-width: calc(100% - 24px) !important;
+    width: calc(100% - 24px) !important;
+    border-radius: 8px !important;
+  }
+}
+</style>
+
+<script>
+(function ensurePegaWidgetVisible(){
+  var tried = 0;
+  var maxTries = 120; // ~36s total (300ms interval)
+  var gap = 20; // gap above footer
+
+  // find likely widget nodes (broad selectors)
+  function findWidgetNode() {
+    return document.querySelector('[id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat, iframe[src*="pega"]');
+  }
+
+  // move node to body if it's inside some transformed/container element
+  function moveToBody(node) {
+    if (!node) return;
+    if (node.parentElement !== document.body) {
+      try {
+        document.body.appendChild(node);
+        node.setAttribute('data-widget-pega', 'moved-to-body');
+      } catch (e) {
+        // fallback: just continue
+      }
+    }
+  }
+
+  // compute footer height and nudge widget up so it never hides behind footer
+  function nudgeAboveFooter(node) {
+    if (!node) return;
+    var footer = document.querySelector('footer, .footer, .site-footer, [role="contentinfo"]');
+    var footerHeight = (footer && footer.offsetHeight) ? footer.offsetHeight : 0;
+    var bottomValue = Math.max(gap, footerHeight + gap);
+    node.style.position = 'fixed';
+    node.style.bottom = bottomValue + 'px';
+    node.style.right = '24px';
+    node.style.zIndex = '2147483647';
+  }
+
+  function adjust() {
+    var node = findWidgetNode();
+    if (!node) return false;
+    moveToBody(node);
+    nudgeAboveFooter(node);
+
+    // ensure node carries the CSS selector we set above (some widgets create nested wrappers)
+    if (!node.matches('[data-widget-pega]')) node.setAttribute('data-widget-pega', '1');
+
+    // also try to style inner wrapper(s)
+    var inner = node.querySelector('[class*="wm-"], [class*="pega-"], iframe');
+    if (inner) {
+      inner.style.pointerEvents = 'auto';
+      inner.style.transform = 'none';
+    }
+    return true;
+  }
+
+  // keep trying while widget initializes
+  var iv = setInterval(function(){
+    tried++;
+    try {
+      var done = adjust();
+      if (done || tried >= maxTries) {
+        clearInterval(iv);
+      }
+    } catch (e) {
+      // ignore and retry
+    }
+  }, 300);
+
+  // also observe DOM mutations (some widgets load late)
+  var mo = new MutationObserver(function(){
+    adjust();
+  });
+  mo.observe(document.body, {childList: true, subtree: true});
+
+  // adjust on resize/scroll in case footer size/position changes
+  window.addEventListener('resize', function(){ adjust(); });
+  window.addEventListener('scroll', function(){ adjust(); });
+})();
+</script>
+
 
 </body>
 </html>
