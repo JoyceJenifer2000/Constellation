@@ -200,218 +200,93 @@
         src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
         defer></script>
 
-<!-- Pega widget (keep your widget src if different) -->
-<script id="pega-wm-chat" src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js" defer></script>
 
-<!-- Script: measure natural width and lock widget to that size; prevent overlap -->
-<style>
-  /* minimal safety CSS so our script can target and control the widget */
-  [data-widget-pega], [id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat {
-    position: fixed !important;
-    right: 24px !important;
-    bottom: 24px !important;
-    z-index: 2147483647 !important;
-    transform: none !important;
-  }
-</style>
 
+<!-- LIGHTWEIGHT Pega widget fix: single-run, safe, non-blocking -->
 <script>
-(function normalizePegaSize(){
-  var tries = 0, maxTries = 140, interval = 300, gap = 20;
+if (!window.__pega_fix_applied) {
+  window.__pega_fix_applied = true;
 
-  function findRoot(){
-    return document.querySelector('[id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat, iframe[src*="pega"]');
-  }
+  // Minimal CSS inserted once
+  (function injectCSS(){
+    var css = '\
+[data-widget-pega], [id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat {\
+  position: fixed !important; right: 24px !important; bottom: 24px !important; z-index: 2147483647 !important; transform: none !important;\
+}\
+[data-widget-pega] .wm-panel, [data-widget-pega] .pegaChatPanel, [data-widget-pega] iframe, .wm-panel, .pegaChatPanel, iframe[src*="pega"] {\
+  max-width: 90vw !important; width: auto !important; max-height: 80vh !important; overflow: auto !important; box-sizing: border-box !important;\
+}';
+    var s = document.createElement('style');
+    s.id = 'pega-light-fix-css';
+    s.appendChild(document.createTextNode(css));
+    document.head && document.head.appendChild(s);
+  })();
 
-  function findPanel(root){
-    if(!root) return null;
-    // common internal panel nodes
-    return root.querySelector('.wm-panel, .pegaChatPanel, .pega-chat-panel, .pega-web-messaging, iframe') || root;
-  }
+  // short-lived observer to style the widget the moment it appears
+  (function observeOnce(){
+    var timeout = 10000; // stop after 10s
+    var done = false;
 
-  function clearPreviousInlineSizing(el){
-    if(!el) return;
-    try {
-      // remove any forced sizing properties we might have put earlier
-      el.style.width = '';
-      el.style.maxWidth = '';
-      el.style.maxHeight = '';
-      el.style.overflow = '';
-      el.style.boxSizing = '';
-      el.style.display = '';
-      el.style.transform = '';
-    } catch(e){/*ignore*/}
-  }
+    function findRoot() {
+      return document.querySelector('[id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat, iframe[src*="pega"]');
+    }
 
-  function moveToBody(node){
-    if(!node) return;
-    try {
-      if(node.parentElement !== document.body) document.body.appendChild(node);
-      node.setAttribute && node.setAttribute('data-widget-pega','1');
-    } catch(e){}
-  }
-
-  function nudgeAboveFooter(node){
-    if(!node) return;
-    var footer = document.querySelector('footer, .footer, .site-footer, [role="contentinfo"]');
-    var footerHeight = (footer && footer.offsetHeight) ? footer.offsetHeight : 0;
-    var bottomVal = Math.max(gap, footerHeight + gap) + 'px';
-    node.style.position = 'fixed';
-    node.style.right = '24px';
-    node.style.bottom = bottomVal;
-    node.style.zIndex = '2147483647';
-  }
-
-  function measureNaturalWidth(panel){
-    if(!panel) return null;
-    // if panel is an iframe, measure its iframe element (outer)
-    var measuringEl = panel.tagName === 'IFRAME' ? panel : (panel.querySelector('iframe') || panel);
-
-    // save current inline styles so we can restore later
-    var prev = {
-      display: measuringEl.style.display || '',
-      visibility: measuringEl.style.visibility || '',
-      position: measuringEl.style.position || '',
-      left: measuringEl.style.left || '',
-      top: measuringEl.style.top || '',
-      maxWidth: measuringEl.style.maxWidth || '',
-      width: measuringEl.style.width || ''
-    };
-
-    try {
-      // put element off-screen but visible so browser computes its natural size
-      measuringEl.style.visibility = 'hidden';
-      measuringEl.style.display = 'block';
-      measuringEl.style.position = 'absolute';
-      measuringEl.style.left = '-9999px';
-      measuringEl.style.top = '-9999px';
-      measuringEl.style.maxWidth = 'none';
-      measuringEl.style.width = 'auto';
-      document.body.appendChild(measuringEl); // safe even if already in DOM
-
-      // allow layout to settle (not perfect but quick)
-      var w = Math.round(measuringEl.getBoundingClientRect().width || measuringEl.offsetWidth || 0);
-
-      // restore previous inline styles
-      measuringEl.style.display = prev.display;
-      measuringEl.style.visibility = prev.visibility;
-      measuringEl.style.position = prev.position;
-      measuringEl.style.left = prev.left;
-      measuringEl.style.top = prev.top;
-      measuringEl.style.maxWidth = prev.maxWidth;
-      measuringEl.style.width = prev.width;
-
-      // fallback: if measured small (<=0), return null
-      if (!w || w < 40) return null;
-      return w;
-    } catch(e){
-      // restore in error case
+    function applySimpleFix(root) {
+      if (!root) return;
       try {
-        measuringEl.style.display = prev.display;
-        measuringEl.style.visibility = prev.visibility;
-        measuringEl.style.position = prev.position;
-        measuringEl.style.left = prev.left;
-        measuringEl.style.top = prev.top;
-        measuringEl.style.maxWidth = prev.maxWidth;
-        measuringEl.style.width = prev.width;
-      } catch(_) {}
-      return null;
-    }
-  }
+        // move to body to avoid clipping by transformed ancestors
+        if (root.parentElement !== document.body) document.body.appendChild(root);
+        root.setAttribute && root.setAttribute('data-widget-pega','1');
 
-  function applyWidth(panel, measuredWidth){
-    if(!panel || !measuredWidth) return;
-    // bound width to viewport (leave 24px gap both sides)
-    var maxAllowed = Math.floor(window.innerWidth - 48);
-    var finalW = Math.min(measuredWidth, maxAllowed);
-    // cap to a reasonable max so it doesn't become full-bleed
-    var reasonableMax = Math.min(600, maxAllowed);
-    finalW = Math.min(finalW, reasonableMax);
+        // nudge above footer if present
+        var footer = document.querySelector('footer, .footer, .site-footer, [role="contentinfo"]');
+        var gap = 20;
+        var footerH = (footer && footer.offsetHeight) ? footer.offsetHeight : 0;
+        root.style.position = 'fixed';
+        root.style.right = '24px';
+        root.style.bottom = Math.max(gap, footerH + gap) + 'px';
+        root.style.zIndex = '2147483647';
 
-    // apply to panel and likely inner panes; keep vertical limit
-    try {
-      panel.style.width = finalW + 'px';
-      panel.style.maxWidth = finalW + 'px';
-      panel.style.maxHeight = '80vh';
-      panel.style.overflow = 'auto';
-      panel.style.boxSizing = 'border-box';
-      // also apply to iframe if present
-      var iframe = panel.tagName === 'IFRAME' ? panel : panel.querySelector('iframe');
-      if (iframe) {
-        iframe.style.width = finalW + 'px';
-        iframe.style.maxWidth = finalW + 'px';
-        iframe.style.maxHeight = '80vh';
-      }
-    } catch(e){}
-  }
-
-  var iv = setInterval(function(){
-    tries++;
-    try {
-      var root = findRoot();
-      if(!root){
-        if(tries >= maxTries) clearInterval(iv);
-        return;
-      }
-
-      moveToBody(root);
-      nudgeAboveFooter(root);
-      clearPreviousInlineSizing(root);
-
-      var panel = findPanel(root);
-      if (!panel) {
-        if(tries >= maxTries) clearInterval(iv);
-        return;
-      }
-
-      // remove any previous forced inline sizing on panel
-      clearPreviousInlineSizing(panel);
-
-      // measure natural width
-      var measured = measureNaturalWidth(panel);
-      if (measured) {
-        applyWidth(panel, measured);
-        // once measured and applied a few times, stop polling
-        if (tries > 6) {
-          clearInterval(iv);
+        // ensure inner panel doesn't auto-open full-screen (just collapse if huge)
+        var inner = root.querySelector('.wm-panel, .pegaChatPanel, .pega-chat-panel, iframe') || root;
+        if (inner) {
+          // if inner is taller than viewport, let CSS handle scroll; if it is obviously fullscreen, reduce height
+          var h = inner.offsetHeight;
+          if (h > window.innerHeight * 0.95) {
+            inner.style.maxHeight = '80vh';
+            inner.style.overflow = 'auto';
+          }
         }
-      } else {
-        // keep trying until widget finishes rendering
-        if (tries >= maxTries) clearInterval(iv);
-      }
-    } catch (err) {
-      // don't break; allow retries
-      if (tries >= maxTries) clearInterval(iv);
+      } catch(e) { /* noop */ }
     }
-  }, interval);
 
-  // keep adjusting if viewport/footer changes
-  window.addEventListener('resize', function(){
-    var r = findRoot();
-    if (r) nudgeAboveFooter(r);
-  });
-  window.addEventListener('scroll', function(){
-    var r = findRoot();
-    if (r) nudgeAboveFooter(r);
-  });
-
-  // observe DOM re-renders
-  var mo = new MutationObserver(function(){
-    var r = findRoot();
-    if (r) {
-      // try to re-measure once in-case widget changed
-      var p = findPanel(r);
-      if (p) {
-        var m = measureNaturalWidth(p);
-        if (m) applyWidth(p, m);
-        nudgeAboveFooter(r);
-      }
+    // immediate check in case widget already present
+    var rootNow = findRoot();
+    if (rootNow) {
+      applySimpleFix(rootNow);
+      done = true;
     }
-  });
-  mo.observe(document.body, {childList:true, subtree:true});
-})();
+
+    if (!done) {
+      var mo = new MutationObserver(function(mutations){
+        if (done) return;
+        var r = findRoot();
+        if (r) {
+          applySimpleFix(r);
+          done = true;
+          try { mo.disconnect(); } catch(e){}
+        }
+      });
+      mo.observe(document.body, {childList: true, subtree: true});
+
+      // stop observing after timeout
+      setTimeout(function(){
+        try { mo.disconnect(); } catch(e){}
+      }, timeout);
+    }
+  })();
+}
 </script>
-
 
 
 
