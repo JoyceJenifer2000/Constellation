@@ -201,92 +201,44 @@
         defer></script>
 
 
-
-<!-- LIGHTWEIGHT Pega widget fix: single-run, safe, non-blocking -->
-<script>
-if (!window.__pega_fix_applied) {
-  window.__pega_fix_applied = true;
-
-  // Minimal CSS inserted once
-  (function injectCSS(){
-    var css = '\
-[data-widget-pega], [id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat {\
-  position: fixed !important; right: 24px !important; bottom: 24px !important; z-index: 2147483647 !important; transform: none !important;\
-}\
-[data-widget-pega] .wm-panel, [data-widget-pega] .pegaChatPanel, [data-widget-pega] iframe, .wm-panel, .pegaChatPanel, iframe[src*="pega"] {\
-  max-width: 90vw !important; width: auto !important; max-height: 80vh !important; overflow: auto !important; box-sizing: border-box !important;\
-}';
-    var s = document.createElement('style');
-    s.id = 'pega-light-fix-css';
-    s.appendChild(document.createTextNode(css));
-    document.head && document.head.appendChild(s);
-  })();
-
-  // short-lived observer to style the widget the moment it appears
-  (function observeOnce(){
-    var timeout = 10000; // stop after 10s
-    var done = false;
-
-    function findRoot() {
-      return document.querySelector('[id^="pega"], [class*="pega"], .pega-web-messaging, .pega-chat-widget, .wm-chat, .webchat, iframe[src*="pega"]');
-    }
-
-    function applySimpleFix(root) {
-      if (!root) return;
-      try {
-        // move to body to avoid clipping by transformed ancestors
-        if (root.parentElement !== document.body) document.body.appendChild(root);
-        root.setAttribute && root.setAttribute('data-widget-pega','1');
-
-        // nudge above footer if present
-        var footer = document.querySelector('footer, .footer, .site-footer, [role="contentinfo"]');
-        var gap = 20;
-        var footerH = (footer && footer.offsetHeight) ? footer.offsetHeight : 0;
-        root.style.position = 'fixed';
-        root.style.right = '24px';
-        root.style.bottom = Math.max(gap, footerH + gap) + 'px';
-        root.style.zIndex = '2147483647';
-
-        // ensure inner panel doesn't auto-open full-screen (just collapse if huge)
-        var inner = root.querySelector('.wm-panel, .pegaChatPanel, .pega-chat-panel, iframe') || root;
-        if (inner) {
-          // if inner is taller than viewport, let CSS handle scroll; if it is obviously fullscreen, reduce height
-          var h = inner.offsetHeight;
-          if (h > window.innerHeight * 0.95) {
-            inner.style.maxHeight = '80vh';
-            inner.style.overflow = 'auto';
-          }
-        }
-      } catch(e) { /* noop */ }
-    }
-
-    // immediate check in case widget already present
-    var rootNow = findRoot();
-    if (rootNow) {
-      applySimpleFix(rootNow);
-      done = true;
-    }
-
-    if (!done) {
-      var mo = new MutationObserver(function(mutations){
-        if (done) return;
-        var r = findRoot();
-        if (r) {
-          applySimpleFix(r);
-          done = true;
-          try { mo.disconnect(); } catch(e){}
-        }
-      });
-      mo.observe(document.body, {childList: true, subtree: true});
-
-      // stop observing after timeout
-      setTimeout(function(){
-        try { mo.disconnect(); } catch(e){}
-      }, timeout);
-    }
-  })();
-}
+<!-- Pega web chat as usual -->
+<script id="pega-wm-chat"
+        src="https://widget.use1.chat.pega.digital/7ae7bde7-7163-451f-9508-60ec2c46f9f7/widget.js"
+        defer>
 </script>
+
+<style>
+  /* === YOU CAN CUSTOMIZE THIS === */
+  :root {
+    --pega-chat-width: 420px;       /* change width here (original looking size) */
+    --pega-chat-max-height: 80vh;   /* change height limit here */
+  }
+
+  /* === POSITION FIX (the part that fixed the overlap earlier) === */
+  [id^="pega"], 
+  [class*="pega"], 
+  .pega-web-messaging, 
+  .pega-chat-widget, 
+  .wm-chat, 
+  .webchat {
+    position: fixed !important;
+    right: 24px !important;
+    bottom: 24px !important;
+    z-index: 2147483647 !important;
+    transform: none !important;
+    width: var(--pega-chat-width) !important;
+    max-height: var(--pega-chat-max-height) !important;
+  }
+
+  /* Inner iframe / panel sizing */
+  [id^="pega"] iframe,
+  .pega-web-messaging iframe,
+  .wm-chat iframe {
+    width: var(--pega-chat-width) !important;
+    max-height: var(--pega-chat-max-height) !important;
+    border: none !important;
+  }
+</style>
 
 
 
