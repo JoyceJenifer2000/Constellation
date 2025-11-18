@@ -34,17 +34,22 @@
 <meta name=referrer content=no-referrer><link rel="shortcut icon" type=image/vnd.microsoft.icon href="data:image/vnd.microsoft.icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAABILAAASCwAAAAAAAAAAAAAAAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8CCg3/H6fa/x+n2v8fqtf/ByUx/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/xZ6oP8frNn/ILHe/xNoh/8AAAD/AAAA/xuTwf8o4v//Kd///xqPvP8FFBz/BRoj/wUaJP8FGiP/BBQa/wo3SP8m1///KNr//yfX//8HKTX/AAUI/wAAAP8GJC7/Jc7//yTK//8lzv//I8P9/yTI//8kxv7/JMP//yTD//8jxv//JMr//yfX//8Xfqb/AAAA/wAAAP8AAAD/AAAA/xZ6oP8m1///JMj//yPD/f8htu3/KNr//yXR//8kyP//I8b//yXO//8jw/3/BRQc/wAAAP8AAAD/BR4n/wMOE/8EFBr/I8H6/yXR//8dpNb/AQgL/xBffP8jwfr/Jtf//yTK//8m1///EmiK/wAAAP8AAAD/AAAA/wxFWf8Vcpb/AAAA/xJnh/8p3///Hqng/wAAAP8AAAD/AQgL/xNqjP8jxv//Ir/5/wIKDf8AAAD/AAAA/wAAAP8KN0j/Jc7//wMOE/8BBAX/I8H6/yPG//8SaIr/EFt3/xBXc/8PU23/HZ/N/xBdev8AAAD/AAAA/wAAAP8AAAD/CTJD/ynh//8XfKP/AAAA/xFdev8n2f//Jtf//ybX//8m1///Kd///yG27f8ABAf/AAAA/wAAAP8AAAD/AAAA/wk3R/8p3///Kd///wcmM/8AAAD/Ibbt/yfZ//8l0f//JdH//yfc//8NSF//AAAA/wAAAP8AAAD/AAAA/wAAAP8GIi7/HZ/N/x6m0v8QV3L/AAAA/wxFWf8dn8j/G5fF/x2fyP8Xfqb/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="><style>.sf-hidden{display:none!important}</style>
 
 
-<meta http-equiv="Content-Security-Policy"
-      content="
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
-        connect-src 'self' https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital wss://widget.use1.chat.pega.digital wss://*.pega.digital wss://*.chat.pega.digital;
-        frame-src https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
-        img-src 'self' data: https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
-        style-src 'self' 'unsafe-inline';
-        font-src 'self';
-        object-src 'none';
-      ">
+<head>
+  <!-- ==== CSP: paste this as the FIRST tag inside <head> ==== -->
+  <meta http-equiv="Content-Security-Policy"
+        content="
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
+          script-src-elem 'self' https://widget.use1.chat.pega.digital https://*.pega.digital;
+          worker-src 'self' blob: https://widget.use1.chat.pega.digital https://*.pega.digital;
+          connect-src 'self' https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital wss://widget.use1.chat.pega.digital wss://*.pega.digital wss://*.chat.pega.digital;
+          frame-src https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
+          img-src 'self' data: https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
+          style-src 'self' 'unsafe-inline';
+          font-src 'self' https://fonts.gstatic.com;
+          object-src 'none';
+        ">
+  <!-- other head tags follow -->
 
 
 <body class=body--active>
