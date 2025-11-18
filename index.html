@@ -35,20 +35,17 @@
 
 
 <meta http-equiv="Content-Security-Policy"
-      content="
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
-        script-src-elem 'self' https://widget.use1.chat.pega.digital https://*.pega.digital;
-        worker-src 'self' blob: https://widget.use1.chat.pega.digital https://*.pega.digital;
-        connect-src 'self' https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital wss://widget.use1.chat.pega.digital wss://*.pega.digital wss://*.chat.pega.digital;
-        frame-src https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
-        img-src 'self' data: https://widget.use1.chat.pega.digital https://*.pega.digital https://*.chat.pega.digital;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-        font-src 'self' data: https://fonts.gstatic.com https://*.pega.digital;
-        object-src 'none';
-      ">
-
-
+  content="default-src 'none';
+           script-src 'self' 'unsafe-inline' 'unsafe-eval' https://widget.use1.chat.pega.digital https://*.pega.digital blob:;
+           script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://widget.use1.chat.pega.digital https://*.pega.digital;
+           worker-src 'self' blob: https://widget.use1.chat.pega.digital https://*.pega.digital;
+           connect-src 'self' https://widget.use1.chat.pega.digital https://*.pega.digital wss://*.pega.digital;
+           frame-src 'self' https://widget.use1.chat.pega.digital https://*.pega.digital;
+           img-src 'self' data: https://widget.use1.chat.pega.digital https://*.pega.digital;
+           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.pega.digital;
+           style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+           font-src 'self' data: https://fonts.gstatic.com https://*.pega.digital;
+           object-src 'none';">
 
 <body class=body--active>
  <a href=#main-content class=skip-link aria-label="Skip to main content">Skip to main content</a>
@@ -202,27 +199,9 @@
  
 <iframe height=0 width=0 style=display:none;visibility:hidden></iframe><iframe height=0 width=0 style=display:none;visibility:hidden></iframe><span id=PING_IFRAME_FORM_DETECTION style=display:none></span><iframe sandbox="allow-scripts allow-same-origin" title="Adobe ID Syncing iFrame" id=destination_publishing_iframe_asb_0 name=destination_publishing_iframe_asb_0_name class=aamIframeLoaded style=display:none;width:0px;height:0px></iframe>
 
-<script id="pega-wm-chat"
-        src="https://widget.use1.chat.pega.digital/93f10b01-e5f8-4c2f-a38b-0b5cae752953/widget.js"
-        defer></script>
 
-
-<!-- Pega web chat as usual -->
-<script id="pega-wm-chat"
-        src="https://widget.use1.chat.pega.digital/93f10b01-e5f8-4c2f-a38b-0b5cae752953/widget.js"
-        defer>
-</script>
-
-
-
-<!-- Pega widget (keep your original src if different) -->
-<script id="pega-wm-chat" src="https://widget.use1.chat.pega.digital/93f10b01-e5f8-4c2f-a38b-0b5cae752953/widget.js" defer></script>
-
-<!-- Pega web chat as usual -->
-<script id="pega-wm-chat"
-        src="https://widget.use1.chat.pega.digital/93f10b01-e5f8-4c2f-a38b-0b5cae752953/widget.js"
-        defer>
-</script>
+    <script id="pega-wm-chat" src="https://widget.use1.chat.pega.digital/93f10b01-e5f8-4c2f-a38b-0b5cae752953/widget.js"></script>
+    
 
 <style>
   /* === YOU CAN CUSTOMIZE THIS === */
